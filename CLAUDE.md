@@ -14,9 +14,14 @@ powershell -File scripts\start_stack.ps1
 python -m pip install -r requirements.txt ; streamlit run app.py
 
 # tests (run before any commit)
-python -m pytest -q                       # full suite, incl. regression gates
+$env:LANGFUSE_ENABLED=0                   # unless the stack is up: see below
+python -m pytest -q                       # full suite (~35s), incl. regression gates
 python -m pytest tests/test_soak.py -q    # determinism/no-silent-failure soak
 ```
+
+**Always set `LANGFUSE_ENABLED=0` when the stack is down.** Tracing fails open, so the tests
+pass regardless, but the SDK retries against an absent server and a 35s run becomes ~10min.
+If a run appears to hang around 92%, that is this, not a broken test.
 
 Ollama runs **natively** (GPU); `scripts\start_stack.ps1` starts it bound to `0.0.0.0` so
 containers reach it via `host.docker.internal`. Models: `ollama pull qwen3:14b` (agent) and

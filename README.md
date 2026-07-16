@@ -121,14 +121,20 @@ order, and both `M/D/YYYY` and `D/M/YYYY`.
 ## Tests
 
 ```powershell
-python -m pytest -q                      # full suite
+$env:LANGFUSE_ENABLED=0                  # see note below
+python -m pytest -q                      # full suite (~35s)
 python -m pytest tests/test_soak.py -q   # determinism / no-silent-failure soak
 ```
+
+Set `LANGFUSE_ENABLED=0` unless the stack is up. The tests pass either way, but the tracing
+SDK will otherwise retry against a Langfuse server that isn't running and stretch a 35-second
+run out to roughly ten minutes.
 
 The suite covers the regression gates above plus the grounding invariant, the sandbox security
 boundary, ingest edge cases, append-only history, and a soak test for determinism.
 Observability and memory are tested to **fail open**: if Langfuse or Supermemory is dead, the
-product still answers (`test_agent_survives_dead_memory_and_tracing`).
+product still answers (`test_agent_survives_dead_memory_and_tracing`). That is the same
+property the flag above exploits.
 
 ## Honest gaps
 
