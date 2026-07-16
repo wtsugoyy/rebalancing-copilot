@@ -1,0 +1,103 @@
+# Rebalancing Copilot — fully offline stack.
+#
+#   app        Streamlit dashboard + LangGraph agent
+#   langfuse   self-hosted LLM tracing (v2: server + postgres). Telemetry OFF.
+#   langfuse-db  postgres backing store for langfuse
+#
+# The LLM (Ollama) and the memory service (Supermemory) run NATIVELY on the Windows
+# host, not in Docker:
+#   * Ollama  -> native, so it can use the AMD RX 9060 XT via ROCm (gfx1200).
+#               Docker on Windows cannot pass through an AMD GPU.
+#   * Supermemory -> `npx supermemory local` (port 6767); it ships no docker image
+#               and needs no database.
+# Containers reach both through `host.docker.internal`.
+#
+# Start everything:   scripts\start_stack.ps1
+# Or just the containers:  docker compose up -d --build
+#
+# Nothing leaves the machine: Ollama, Supermemory and Langfuse are all local, and
+# Langfuse telemetry is explicitly disabled.
+
+services:
+  app:
+    build: .
+    container_name: rebalancing-copilot
+    ports:
+      - "8501:8501"
+    environment:
+      # native host services
+      # Which brain answers: "ollama" (local, offline) | "gateway" (remote model).
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_HOST: http://host.docker.internal:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:14b}
+      # Remote gateway (used only when LLM_PROVIDER=gateway).
+      GATEWAY_BASE: ${GATEWAY_BASE:-https://llm-gateway.example.com}
+      GATEWAY_MODEL: ${GATEWAY_MODEL:-local-main}
+      GATEWAY_PROJECT_KEY: ${GATEWAY_PROJECT_KEY:-default}
+      GATEWAY_TIMEOUT_S: ${GATEWAY_TIMEOUT_S:-120}
+      GATEWAY_BEARER: ${GATEWAY_BEARER:-}
+      SUPERMEMORY_URL: ${SUPERMEMORY_URL:-http://host.docker.internal:6767}
+      SUPERMEMORY_API_KEY: ${SUPERMEMORY_API_KEY:-}
+      # self-hosted langfuse (container-to-container)
+      LANGFUSE_HOST: http://langfuse:3000
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-copilot-demo}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-copilot-demo}
+      COPILOT_DB: /app/data/copilot.db
+      COPILOT_LOG: /app/data/copilot.log
+    volumes:
+      - copilot-data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      langfuse:
+        condition: service_started
+    restart: unless-stopped
+
+  langfuse:
+    image: langfuse/langfuse:2
+    container_name: langfuse
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@langfuse-db:5432/postgres
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-iTkz5WTOHXdEIOXOCyAjDGlMt0BbvYUgOSoWd6oKn9k}
+      SALT: ${LANGFUSE_SALT:-ylLUW2zVjZKYA4PvvCF_aXuH7r2zmWhY}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-92bd621a94dcefd3782a4ea00405cf37d0d733466a16ac80955b49b1c69dcf5b}
+      # --- fully offline: no phone-home ---
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+      # --- deterministic bootstrap so the demo needs no manual signup ---
+      LANGFUSE_INIT_ORG_ID: demo
+      LANGFUSE_INIT_ORG_NAME: Demo
+      LANGFUSE_INIT_PROJECT_ID: copilot
+      LANGFUSE_INIT_PROJECT_NAME: Rebalancing Copilot
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-copilot-demo}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-copilot-demo}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_USER_EMAIL:-admin@copilot.local}
+      LANGFUSE_INIT_USER_NAME: Admin
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_USER_PASSWORD:-copilot-demo-1234}
+    restart: unless-stopped
+
+  langfuse-db:
+    image: postgres:17
+    container_name: langfuse-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - langfuse-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  copilot-data:
+  langfuse-db-data:

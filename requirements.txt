@@ -1,0 +1,22 @@
+# Rebalancing Copilot — Phase 1a (attribution + history + offline chat).
+# Versions floor-pinned to current stable releases (verified via PyPI,).
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.9.0     # reserved for Phase 1b covariance (Ledoit-Wolf)
+openpyxl>=3.1.0
+streamlit>=1.59.0
+ollama>=0.6.2
+pydantic>=2.7
+pytest>=8.0
+# NOTE: an earlier design drove Excel over COM (pywin32); it cannot run in Docker and
+# was replaced by the native SLSQP optimizer in engine/optimizer.py.
+
+# --- agent harness / observability / memory (added for the qwen3:14b upgrade) ---
+langgraph>=0.2.0        # agent graph: recall -> tools -> reason
+# MUST stay <3. We self-host `langfuse/langfuse:2`; the v3/v4 SDKs expect newer
+# /api/public/projects fields (organization, metadata) that the v2 server does not
+# return, so auth_check() dies with a pydantic ValidationError and tracing silently
+# degrades to off. Bump the server image before relaxing this bound.
+langfuse>=2.60,<3       # self-hosted LLM tracing (v2 server)
+httpx>=0.27             # supermemory REST client
+scipy>=1.11        # rebalancing engine (SLSQP optimizer)

@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.env
+
+# Local runtime state: whatever you load into the app stays on your machine.
+data/*.db
+data/*.db-*
+data/*.log
+
+# NOTE: tests/fixtures/*.json and sample/* ARE committed — the test suite and the
+# app demo need them. They are generated from a seeded RNG by
+# scripts/make_synthetic_fixtures.py and describe invented funds (ZZ ISINs), so
+# there is nothing confidential in them. If you point this tool at real holdings,
+# that data lives in data/ and is ignored above — keep it that way.

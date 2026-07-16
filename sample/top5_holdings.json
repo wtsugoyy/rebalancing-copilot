@@ -1,0 +1,68 @@
+{
+ "ZZ0000000012": [
+  {
+   "holding": "Northwind Mining Corp",
+   "weight": 0.0861
+  },
+  {
+   "holding": "Silverpeak Resources Ltd",
+   "weight": 0.0752
+  },
+  {
+   "holding": "Ironbark Gold Ltd",
+   "weight": 0.0644
+  },
+  {
+   "holding": "Meridian Metals Inc",
+   "weight": 0.0588
+  },
+  {
+   "holding": "Calder Bay Minerals",
+   "weight": 0.0501
+  }
+ ],
+ "ZZ0000000010": [
+  {
+   "holding": "Bullion Trust ETF",
+   "weight": 0.214
+  },
+  {
+   "holding": "Northwind Mining Corp",
+   "weight": 0.0925
+  },
+  {
+   "holding": "Harbour Gold Holdings",
+   "weight": 0.071
+  },
+  {
+   "holding": "Silverpeak Resources Ltd",
+   "weight": 0.0663
+  },
+  {
+   "holding": "Redstone Exploration",
+   "weight": 0.0402
+  }
+ ],
+ "ZZ0000000009": [
+  {
+   "holding": "Pacific Semiconductor Co",
+   "weight": 0.0712
+  },
+  {
+   "holding": "Eastgate Financial Group",
+   "weight": 0.0655
+  },
+  {
+   "holding": "Lantern Telecom Bhd",
+   "weight": 0.053
+  },
+  {
+   "holding": "Kestrel Industries",
+   "weight": 0.0487
+  },
+  {
+   "holding": "Blue Harbour Logistics",
+   "weight": 0.0421
+  }
+ ]
+}
