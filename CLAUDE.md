@@ -13,15 +13,20 @@ powershell -File scripts\start_stack.ps1
 # local
 python -m pip install -r requirements.txt ; streamlit run app.py
 
-# tests (run before any commit)
-$env:LANGFUSE_ENABLED=0                   # unless the stack is up: see below
-python -m pytest -q                       # full suite (~35s), incl. regression gates
-python -m pytest tests/test_soak.py -q    # determinism/no-silent-failure soak
+# tests
+$env:LANGFUSE_ENABLED=0                              # unless the stack is up: see below
+python -m pytest -q --ignore=tests/test_soak.py      # fast gate, ~35s: use while iterating
+python -m pytest -q                                  # everything incl. soak, ~22min
 ```
 
 **Always set `LANGFUSE_ENABLED=0` when the stack is down.** Tracing fails open, so the tests
-pass regardless, but the SDK retries against an absent server and a 35s run becomes ~10min.
-If a run appears to hang around 92%, that is this, not a broken test.
+pass either way, but the SDK retries against an absent server and wastes minutes.
+
+**The soak dominates the full run.** `test_full_upload_optimize_query_save_cycle_no_silent_failures`
+alone is ~16min and `test_attribution_is_deterministic_across_cycles` ~5min; the other 152
+tests total ~35s. Both cycle the whole pipeline over the ~820-row fixture, so the cost scales
+with fixture size (widening the window in `make_synthetic_fixtures.py` roughly doubled it).
+A run that looks stuck at 92% has reached the soak and is fine. Measured: 155 passed in 1329s.
 
 Ollama runs **natively** (GPU); `scripts\start_stack.ps1` starts it bound to `0.0.0.0` so
 containers reach it via `host.docker.internal`. Models: `ollama pull qwen3:14b` (agent) and

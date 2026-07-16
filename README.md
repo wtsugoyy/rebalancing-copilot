@@ -121,14 +121,23 @@ order, and both `M/D/YYYY` and `D/M/YYYY`.
 ## Tests
 
 ```powershell
-$env:LANGFUSE_ENABLED=0                  # see note below
-python -m pytest -q                      # full suite (~35s)
-python -m pytest tests/test_soak.py -q   # determinism / no-silent-failure soak
+$env:LANGFUSE_ENABLED=0                             # see note below
+
+python -m pytest -q --ignore=tests/test_soak.py     # fast gate, ~35s
+python -m pytest -q                                 # everything incl. soak, ~22min
 ```
 
-Set `LANGFUSE_ENABLED=0` unless the stack is up. The tests pass either way, but the tracing
-SDK will otherwise retry against a Langfuse server that isn't running and stretch a 35-second
-run out to roughly ten minutes.
+Two things about runtimes, because both are surprising:
+
+**Set `LANGFUSE_ENABLED=0` unless the stack is up.** The tests pass either way (tracing fails
+open by design), but the SDK otherwise retries against an absent Langfuse server and adds
+minutes for nothing.
+
+**The soak is 97% of the full run.** `test_full_upload_optimize_query_save_cycle_no_silent_failures`
+alone takes ~16 minutes: it drives the whole pipeline repeatedly over the full ~820-observation
+fixture, and that cost scales with the fixture size. Everything else finishes in ~35 seconds.
+Use the fast gate while iterating and run the soak before you commit. If a run looks stuck
+around 92%, it has reached the soak and is working.
 
 The suite covers the regression gates above plus the grounding invariant, the sandbox security
 boundary, ingest edge cases, append-only history, and a soak test for determinism.
